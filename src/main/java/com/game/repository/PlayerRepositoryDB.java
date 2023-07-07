@@ -15,8 +15,6 @@ import java.util.Optional;
 import java.util.Properties;
 
 
-
-
 @Repository(value = "db")
 public class PlayerRepositoryDB implements IPlayerRepository {
     private final SessionFactory sessionFactory;
@@ -52,7 +50,7 @@ public class PlayerRepositoryDB implements IPlayerRepository {
             String sql = "select * from player";
             players = session.createNativeQuery(sql, Player.class)
                     .setMaxResults(pageSize)
-                    .setFirstResult( (pageSize * (pageNumber + 1)) - pageSize )
+                    .setFirstResult((pageSize * pageNumber))
                     .list();
         } catch (Exception e) {
             e.printStackTrace();
