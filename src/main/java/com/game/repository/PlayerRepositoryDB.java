@@ -15,12 +15,7 @@ import java.util.Optional;
 import java.util.Properties;
 
 
-@org.hibernate.annotations.NamedQueries(
-        @org.hibernate.annotations.NamedQuery(
-                name = "Player_GetAllCount",
-                query = "select count(*) from Player"
-        )
-)
+
 
 @Repository(value = "db")
 public class PlayerRepositoryDB implements IPlayerRepository {
@@ -39,7 +34,7 @@ public class PlayerRepositoryDB implements IPlayerRepository {
         properties.put("hibernate.connection.charSet", "UTF-8");
         properties.put(Environment.USER, "root");
         properties.put(Environment.PASS, "r12xVa_hwe");
-        properties.put(Environment.SHOW_SQL, true);
+//        properties.put(Environment.SHOW_SQL, true);
         //Это позволит не создавать таблицу вручную (или через выполнения sql скрипта).
         properties.put(Environment.HBM2DDL_AUTO, "update");
 
@@ -53,8 +48,12 @@ public class PlayerRepositoryDB implements IPlayerRepository {
     public List<Player> getAll(int pageNumber, int pageSize) {
         List<Player> players = Collections.emptyList();
         try (Session session = sessionFactory.openSession()) {
+//            String sql = "select * from player limit = :limit offset = :offset";
             String sql = "select * from player";
-            players = session.createNativeQuery(sql, Player.class).list();
+            players = session.createNativeQuery(sql, Player.class)
+                    .setMaxResults(pageSize)
+                    .setFirstResult( (pageSize * (pageNumber + 1)) - pageSize )
+                    .list();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -65,7 +64,8 @@ public class PlayerRepositoryDB implements IPlayerRepository {
     public int getAllCount() {
         int playersCount = 0;
         try (Session session = sessionFactory.openSession()) {
-            playersCount = (int) session.createNamedQuery("Player_GetAllCount").uniqueResult();
+            playersCount = ((Long) session.createNamedQuery("Player_GetAllCount", Long.class).uniqueResult()).intValue();
+            System.out.println(playersCount);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -77,7 +77,6 @@ public class PlayerRepositoryDB implements IPlayerRepository {
         try (Session session = sessionFactory.openSession()) {
             Transaction transaction = session.beginTransaction();
             session.persist(player);
-            session.evict(player);
             transaction.commit();
         } catch (Exception e) {
             e.printStackTrace();

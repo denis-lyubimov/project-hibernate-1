@@ -7,6 +7,12 @@ import java.util.Date;
 
 @Entity
 @Table(name="player", schema = "rpg")
+@org.hibernate.annotations.NamedQueries(
+        @org.hibernate.annotations.NamedQuery(
+                name = "Player_GetAllCount",
+                query = "select count(*) from Player"
+        )
+)
 public class Player {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
