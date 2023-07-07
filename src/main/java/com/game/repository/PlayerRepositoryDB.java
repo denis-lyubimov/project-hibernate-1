@@ -1,51 +1,126 @@
 package com.game.repository;
 
 import com.game.entity.Player;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.cfg.Environment;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PreDestroy;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
+
+
+@org.hibernate.annotations.NamedQueries(
+        @org.hibernate.annotations.NamedQuery(
+                name = "Player_GetAllCount",
+                query = "select count(*) from Player"
+        )
+)
 
 @Repository(value = "db")
 public class PlayerRepositoryDB implements IPlayerRepository {
+    private final SessionFactory sessionFactory;
 
     public PlayerRepositoryDB() {
+        Properties properties = new Properties();
+//        properties.put(Environment.DRIVER, "com.mysql.cj.jdbc.Driver");
+//        properties.put(Environment.URL, "jdbc:mysql://localhost:3306/rpg");
+        //логгирование
+        properties.put(Environment.DRIVER, "com.p6spy.engine.spy.P6SpyDriver");
+        properties.put(Environment.URL, "jdbc:p6spy:mysql://localhost:3306/rpg");
+        properties.put(Environment.DIALECT, "org.hibernate.dialect.MySQLDialect");
+        properties.put("hibernate.connection.useUnicode", true);
+        properties.put("hibernate.connection.characterEncoding", "UTF-8");
+        properties.put("hibernate.connection.charSet", "UTF-8");
+        properties.put(Environment.USER, "root");
+        properties.put(Environment.PASS, "r12xVa_hwe");
+        properties.put(Environment.SHOW_SQL, true);
+        //Это позволит не создавать таблицу вручную (или через выполнения sql скрипта).
+        properties.put(Environment.HBM2DDL_AUTO, "update");
 
+        sessionFactory = new Configuration()
+                .setProperties(properties)
+                .addAnnotatedClass(Player.class)
+                .buildSessionFactory();
     }
 
     @Override
     public List<Player> getAll(int pageNumber, int pageSize) {
-        return null;
+        List<Player> players = Collections.emptyList();
+        try (Session session = sessionFactory.openSession()) {
+            String sql = "select * from player";
+            players = session.createNativeQuery(sql, Player.class).list();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return players;
     }
 
     @Override
     public int getAllCount() {
-        return 0;
+        int playersCount = 0;
+        try (Session session = sessionFactory.openSession()) {
+            playersCount = (int) session.createNamedQuery("Player_GetAllCount").uniqueResult();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return playersCount;
     }
 
     @Override
     public Player save(Player player) {
-        return null;
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.beginTransaction();
+            session.persist(player);
+            session.evict(player);
+            transaction.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return player;
     }
 
     @Override
     public Player update(Player player) {
-        return null;
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.beginTransaction();
+            player = (Player) session.merge(player);
+            transaction.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return player;
     }
 
     @Override
     public Optional<Player> findById(long id) {
-        return Optional.empty();
+        Optional<Player> player = Optional.empty();
+        try (Session session = sessionFactory.openSession()) {
+            player = Optional.of(session.find(Player.class, id));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return player;
     }
 
     @Override
     public void delete(Player player) {
-
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.beginTransaction();
+            session.remove(player);
+            transaction.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @PreDestroy
     public void beforeStop() {
-
+        sessionFactory.close();
     }
 }
